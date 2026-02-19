@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowMoney – Interactive Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0F0A1E;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+  h1.site-title {
+    color: white;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .site-sub {
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    margin-bottom: 28px;
+  }
+
+  /* ── Phone shell ── */
+  .phone-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .phone {
+    width: 375px;
+    height: 780px;
+    background: #F8F7FF;
+    border-radius: 44px;
+    border: 10px solid #1C1C28;
+    box-shadow: 0 0 0 2px #333, 0 40px 80px rgba(0,0,0,0.5);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .notch {
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 28px;
+    background: #1C1C28;
+    border-radius: 0 0 20px 20px;
+    z-index: 10;
+  }
+
+  /* ── Design tokens ── */
+  :root {
+    --primary: #6366F1;
+    --primary-dark: #4F46E5;
+    --primary-deep: #312E81;
+    --income: #10B981;
+    --expense: #F43F5E;
+    --warning: #F59E0B;
+    --bg: #F8F7FF;
+    --surface: #fff;
+    --text1: #1E1B4B;
+    --text2: #6B7280;
+    --text3: #9CA3AF;
+    --divider: #F3F4F6;
+    --card-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  }
+
+  /* ── Screen container ── */
+  .screen {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    margin-top: 28px; /* below notch */
+  }
+  .screen.active { display: flex; }
+
+  /* ── Status bar ── */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 20px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text1);
+    flex-shrink: 0;
+  }
+
+  /* ── Scrollable body ── */
+  .scroll-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 16px;
+    scrollbar-width: none;
+  }
+  .scroll-body::-webkit-scrollbar { display: none; }
+
+  /* ── Bottom nav ── */
+  .bottom-nav {
+    display: flex;
+    background: white;
+    border-top: 1px solid var(--divider);
+    padding: 8px 0 12px;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    padding: 4px 0;
+  }
+  .nav-icon {
+    width: 22px; height: 22px;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-label { font-size: 9px; font-weight: 600; color: var(--text3); }
+  .nav-item.active .nav-label { color: var(--primary); }
+  .nav-item.active .nav-pill {
+    background: rgba(99,102,241,0.12);
+    border-radius: 10px;
+    padding: 2px 10px;
+  }
+  .nav-spacer { flex: 1; }
+
+  /* ── FAB ── */
+  .fab {
+    position: absolute;
+    bottom: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #312E81, #4F46E5, #7C3AED);
+    border-radius: 28px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+    cursor: pointer;
+    z-index: 5;
+    font-size: 24px;
+    color: white;
+    font-weight: 300;
+    transition: transform 0.15s;
+  }
+  .fab:active { transform: translateX(-50%) scale(0.93); }
+
+  /* ── Cards ── */
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text1);
+    margin-bottom: 12px;
+  }
+
+  /* ── Balance card ── */
+  .balance-card {
+    background: linear-gradient(135deg, #312E81, #4F46E5, #7C3AED);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 12px;
+    color: white;
+  }
+  .balance-month { font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+  .balance-label { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .balance-amount { font-size: 36px; font-weight: 900; letter-spacing: -1px; margin-bottom: 14px; }
+  .balance-pills { display: flex; gap: 8px; }
+  .balance-pill {
+    flex: 1;
+    background: rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pill-icon {
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .pill-label { font-size: 10px; opacity: 0.7; }
+  .pill-val { font-size: 12px; font-weight: 700; }
+
+  /* ── Suggestions bar ── */
+  .suggestions-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 8px; }
+  .suggestions-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .suggestions-row::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0;
+    background: rgba(99,102,241,0.08);
+    border: 1px solid rgba(99,102,241,0.25);
+    border-radius: 999px;
+    padding: 7px 12px;
+    display: flex; align-items: center; gap: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .chip:hover { background: rgba(99,102,241,0.15); }
+  .chip-bolt { font-size: 11px; }
+  .chip-name { font-size: 12px; font-weight: 700; color: var(--primary); }
+  .chip-amt {
+    background: var(--primary);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 20px;
+  }
+
+  /* ── Transactions ── */
+  .txn-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--divider);
+    cursor: pointer;
+  }
+  .txn-row:last-child { border-bottom: none; }
+  .txn-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .txn-info { flex: 1; }
+  .txn-name { font-size: 13px; font-weight: 600; color: var(--text1); }
+  .txn-cat { font-size: 11px; color: var(--text3); }
+  .txn-amount { font-size: 14px; font-weight: 700; }
+
+  /* ── Section header ── */
+  .section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+  }
+  .section-title { font-size: 15px; font-weight: 700; color: var(--text1); }
+  .see-all { font-size: 12px; color: var(--primary); font-weight: 600; cursor: pointer; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { margin-bottom: 12px; }
+  .progress-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .progress-name { font-size: 13px; font-weight: 600; color: var(--text1); }
+  .progress-val { font-size: 12px; color: var(--text2); }
+  .progress-bar-bg {
+    background: var(--divider);
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 8px;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+
+  /* ── Greeting header ── */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 0 8px;
+  }
+  .greeting { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .app-title { font-size: 20px; font-weight: 900; color: var(--text1); }
+  .notif-btn {
+    width: 36px; height: 36px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  /* ── Analytics charts ── */
+  .chart-area {
+    background: var(--bg);
+    border-radius: 10px;
+    height: 120px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 8px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .bar-group { display: flex; gap: 3px; align-items: flex-end; }
+  .bar {
+    width: 10px;
+    border-radius: 3px 3px 0 0;
+    transition: height 0.5s ease;
+  }
+  .chart-legend { display: flex; gap: 12px; margin-top: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+  /* ── Pie chart ── */
+  .pie-row { display: flex; align-items: center; gap: 12px; }
+  .pie-svg { width: 100px; height: 100px; flex-shrink: 0; }
+  .pie-labels { flex: 1; }
+  .pie-label-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .pie-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .pie-lname { font-size: 11px; font-weight: 500; color: var(--text1); flex: 1; }
+  .pie-pct { font-size: 11px; font-weight: 700; color: var(--text2); }
+
+  /* ── Heatmap ── */
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    margin-top: 8px;
+  }
+  .heat-day-label { font-size: 9px; font-weight: 700; color: var(--text3); text-align: center; padding: 2px 0; }
+  .heat-cell {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px;
+    font-weight: 600;
+  }
+
+  /* ── Onboarding ── */
+  .onboarding-screen {
+    flex: 1;
+    background: linear-gradient(135deg, #312E81, #4F46E5, #7C3AED);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .ob-logo {
+    width: 96px; height: 96px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 28px;
+    border: 2px solid rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px;
+    margin-bottom: 24px;
+  }
+  .ob-title { font-size: 36px; font-weight: 900; color: white; letter-spacing: -1px; margin-bottom: 8px; }
+  .ob-sub { font-size: 15px; color: rgba(255,255,255,0.75); line-height: 1.5; margin-bottom: 28px; }
+  .ob-features { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 40px; }
+  .ob-pill {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 12px; font-weight: 600; color: white;
+  }
+  .ob-btn {
+    width: 100%;
+    background: white;
+    color: var(--primary);
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .ob-btn:active { transform: scale(0.97); }
+
+  /* ── Add transaction sheet ── */
+  .sheet-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 20;
+    align-items: flex-end;
+    border-radius: 36px;
+    overflow: hidden;
+  }
+  .sheet-overlay.open { display: flex; }
+  .sheet {
+    background: white;
+    border-radius: 24px 24px 0 0;
+    padding: 16px;
+    width: 100%;
+    max-height: 85%;
+    overflow-y: auto;
+  }
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--divider);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .sheet-title { font-size: 18px; font-weight: 800; color: var(--text1); margin-bottom: 14px; }
+  .type-toggle { display: flex; background: var(--bg); border-radius: 10px; padding: 4px; margin-bottom: 14px; }
+  .type-btn {
+    flex: 1; padding: 9px;
+    border: none; background: transparent;
+    border-radius: 8px; font-size: 13px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;
+    transition: all 0.15s;
+  }
+  .type-btn.active-expense { background: rgba(244,63,94,0.12); color: var(--expense); }
+  .type-btn.active-income { background: rgba(16,185,129,0.12); color: var(--income); }
+  .amount-box {
+    background: rgba(244,63,94,0.06);
+    border: 1px solid rgba(244,63,94,0.2);
+    border-radius: 14px;
+    padding: 14px;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .amount-box label { font-size: 12px; font-weight: 600; color: var(--expense); display: block; margin-bottom: 4px; }
+  .amount-display { font-size: 40px; font-weight: 900; color: var(--expense); letter-spacing: -1px; }
+  .amount-input {
+    background: transparent; border: none; outline: none;
+    font-size: 40px; font-weight: 900; color: var(--expense);
+    text-align: center; width: 100%; font-family: inherit;
+  }
+  .cats-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .cat-chip {
+    padding: 7px 12px;
+    background: white;
+    border: 1px solid var(--divider);
+    border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 4px;
+    transition: all 0.15s;
+  }
+  .cat-chip.selected { background: rgba(99,102,241,0.12); border-color: var(--primary); color: var(--primary); }
+  .note-input {
+    width: 100%; padding: 12px;
+    border: 1px solid var(--divider);
+    border-radius: 10px; font-family: inherit;
+    font-size: 14px; outline: none; margin-bottom: 14px;
+  }
+  .note-input:focus { border-color: var(--primary); }
+  .save-btn {
+    width: 100%; padding: 15px;
+    background: var(--expense);
+    color: white; font-size: 16px; font-weight: 700;
+    border: none; border-radius: 13px; cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.15s;
+  }
+  .save-btn:active { transform: scale(0.97); }
+
+  /* ── Budget screen ── */
+  .budget-card {
+    background: white;
+    border-radius: 14px;
+    box-shadow: var(--card-shadow);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .budget-name { font-size: 14px; font-weight: 700; color: var(--text1); }
+  .budget-period { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+  .budget-amounts { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .budget-spent { font-size: 20px; font-weight: 800; }
+  .budget-total { font-size: 13px; color: var(--text2); align-self: flex-end; }
+  .budget-bar-bg { background: var(--divider); border-radius: 5px; height: 10px; overflow: hidden; margin-bottom: 4px; }
+  .budget-bar-fill { height: 10px; border-radius: 5px; }
+  .budget-footer { font-size: 11px; color: var(--text2); }
+
+  /* ── Settings screen ── */
+  .settings-profile {
+    background: linear-gradient(135deg, #312E81, #4F46E5, #7C3AED);
+    border-radius: 16px;
+    padding: 18px;
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 16px;
+  }
+  .settings-avatar {
+    width: 52px; height: 52px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+  }
+  .settings-name { font-size: 16px; font-weight: 800; color: white; }
+  .settings-sub { font-size: 12px; color: rgba(255,255,255,0.7); }
+  .settings-section-label {
+    font-size: 10px; font-weight: 700; color: var(--text3);
+    letter-spacing: 1px; text-transform: uppercase;
+    padding: 8px 4px 6px;
+  }
+  .settings-group { background: white; border-radius: 14px; box-shadow: var(--card-shadow); margin-bottom: 12px; overflow: hidden; }
+  .settings-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--divider);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-icon {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .settings-label { flex: 1; }
+  .settings-row-title { font-size: 13px; font-weight: 600; color: var(--text1); }
+  .settings-row-sub { font-size: 11px; color: var(--text3); }
+  .settings-chevron { font-size: 14px; color: var(--text3); }
+
+  /* ── Page titles ── */
+  .page-title-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0 8px;
+  }
+  .page-title { font-size: 20px; font-weight: 900; color: var(--text1); }
+  .add-btn {
+    background: var(--primary);
+    color: white;
+    border: none; border-radius: 9px;
+    width: 32px; height: 32px;
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Filter chips ── */
+  .filter-row { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; }
+  .filter-chip {
+    padding: 5px 12px;
+    border: 1px solid var(--divider);
+    background: white;
+    border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    color: var(--text2);
+    cursor: pointer;
+  }
+  .filter-chip.active { background: rgba(99,102,241,0.1); border-color: var(--primary); color: var(--primary); }
+
+  /* Nav screen tab switching */
+</style>
+</head>
+<body>
+
+<h1 class="site-title">📱 FlowMoney — Interactive Preview</h1>
+<p class="site-sub">Full Flutter app preview · Click tabs to explore all screens</p>
+
+<div class="phone-wrapper">
+  <div class="phone">
+    <div class="notch"></div>
+
+    <!-- ════════ ONBOARDING SCREEN ════════ -->
+    <div class="screen" id="screen-onboarding" style="margin-top:28px">
+      <div class="onboarding-screen">
+        <div class="ob-logo">📊</div>
+        <div class="ob-title">FlowMoney</div>
+        <div class="ob-sub">Smart money tracking that<br>learns from your habits</div>
+        <div class="ob-features">
+          <div class="ob-pill">📊 Smart Analytics</div>
+          <div class="ob-pill">💰 Budget Tracking</div>
+          <div class="ob-pill">🔔 Smart Alerts</div>
+          <div class="ob-pill">📤 CSV / Excel</div>
+        </div>
+        <button class="ob-btn" onclick="showScreen('dashboard')">Get Started →</button>
+      </div>
+    </div>
+
+    <!-- ════════ DASHBOARD SCREEN ════════ -->
+    <div class="screen active" id="screen-dashboard">
+      <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+      <div class="scroll-body">
+        <!-- Header -->
+        <div class="page-header">
+          <div>
+            <div class="greeting">Good afternoon 👋</div>
+            <div class="app-title">FlowMoney</div>
+          </div>
+          <div class="notif-btn">🔔</div>
+        </div>
+
+        <!-- Balance card -->
+        <div class="balance-card">
+          <div class="balance-month">February 2026</div>
+          <div class="balance-label">Net Balance</div>
+          <div class="balance-amount">$2,847.50</div>
+          <div class="balance-pills">
+            <div class="balance-pill">
+              <div class="pill-icon" style="background:rgba(16,185,129,0.25)">↓</div>
+              <div>
+                <div class="pill-label">Income</div>
+                <div class="pill-val">$5,200.00</div>
+              </div>
+            </div>
+            <div class="balance-pill">
+              <div class="pill-icon" style="background:rgba(244,63,94,0.25)">↑</div>
+              <div>
+                <div class="pill-label">Expenses</div>
+                <div class="pill-val">$2,352.50</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Smart suggestions -->
+        <div style="margin-bottom:12px">
+          <div class="suggestions-label">☀️ Lunch time</div>
+          <div class="suggestions-row">
+            <div class="chip" onclick="openSheet()">
+              <span class="chip-bolt">⚡</span>
+              <span class="chip-name">🍱 Lunch</span>
+              <span class="chip-amt">$12</span>
+            </div>
+            <div class="chip" onclick="openSheet()">
+              <span class="chip-bolt">⚡</span>
+              <span class="chip-name">☕ Coffee</span>
+              <span class="chip-amt">$5</span>
+            </div>
+            <div class="chip" onclick="openSheet()">
+              <span class="chip-bolt">⚡</span>
+              <span class="chip-name">🚌 Transport</span>
+              <span class="chip-amt">$3</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Budget progress -->
+        <div class="card">
+          <div class="card-title">Budget Overview</div>
+          <div class="progress-wrap">
+            <div class="progress-row">
+              <span class="progress-name">Food & Dining</span>
+              <span class="progress-val">$420 / $500</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width:84%;background:#F59E0B"></div>
+            </div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-row">
+              <span class="progress-name">Transport</span>
+              <span class="progress-val">$78 / $200</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width:39%;background:#10B981"></div>
+            </div>
+          </div>
+          <div class="progress-wrap" style="margin-bottom:0">
+            <div class="progress-row">
+              <span class="progress-name">Shopping</span>
+              <span class="progress-val">$612 / $400</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width:100%;background:#F43F5E"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent transactions -->
+        <div class="card">
+          <div class="section-header">
+            <span class="section-title">Recent Transactions</span>
+            <span class="see-all" onclick="switchTab(1)">See all</span>
+          </div>
+          <div class="txn-row">
+            <div class="txn-icon" style="background:rgba(244,63,94,0.1)">🍱</div>
+            <div class="txn-info">
+              <div class="txn-name">Lunch at Cafeteria</div>
+              <div class="txn-cat">Food & Dining · Today</div>
+            </div>
+            <div class="txn-amount" style="color:var(--expense)">-$12.50</div>
+          </div>
+          <div class="txn-row">
+            <div class="txn-icon" style="background:rgba(99,102,241,0.1)">☕</div>
+            <div class="txn-info">
+              <div class="txn-name">Morning Coffee</div>
+              <div class="txn-cat">Coffee & Drinks · Today</div>
+            </div>
+            <div class="txn-amount" style="color:var(--expense)">-$5.00</div>
+          </div>
+          <div class="txn-row">
+            <div class="txn-icon" style="background:rgba(16,185,129,0.1)">💼</div>
+            <div class="txn-info">
+              <div class="txn-name">Monthly Salary</div>
+              <div class="txn-cat">Income · Feb 1</div>
+            </div>
+            <div class="txn-amount" style="color:var(--income)">+$5,200.00</div>
+          </div>
+          <div class="txn-row">
+            <div class="txn-icon" style="background:rgba(244,63,94,0.1)">🛒</div>
+            <div class="txn-info">
+              <div class="txn-name">Groceries</div>
+              <div class="txn-cat">Groceries · Feb 18</div>
+            </div>
+            <div class="txn-amount" style="color:var(--expense)">-$87.30</div>
+          </div>
+          <div class="txn-row" style="border-bottom:none">
+            <div class="txn-icon" style="background:rgba(59,130,246,0.1)">🚌</div>
+            <div class="txn-info">
+              <div class="txn-name">Monthly Bus Pass</div>
+              <div class="txn-cat">Transport · Feb 1</div>
+            </div>
+            <div class="txn-amount" style="color:var(--expense)">-$45.00</div>
+          </div>
+        </div>
+        <div style="height:80px"></div>
+      </div>
+    </div>
+
+    <!-- ════════ TRANSACTIONS SCREEN ════════ -->
+    <div class="screen" id="screen-transactions">
+      <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+      <div class="scroll-body">
+        <div class="page-title-bar">
+          <div class="page-title">Transactions</div>
+        </div>
+        <input type="text" placeholder="🔍  Search transactions..." style="width:100%;padding:10px 12px;border:1px solid var(--divider);border-radius:10px;font-family:inherit;font-size:13px;outline:none;margin-bottom:10px">
+        <div class="filter-row">
+          <div class="filter-chip active">All</div>
+          <div class="filter-chip">Income</div>
+          <div class="filter-chip">Expense</div>
+          <span style="flex:1"></span>
+          <span style="font-size:11px;color:var(--text3)">12 items</span>
+        </div>
+        <!-- List -->
+        <div class="card" style="padding:8px 12px">
+          <div class="txn-row"><div class="txn-icon" style="background:rgba(244,63,94,0.1)">🍱</div><div class="txn-info"><div class="txn-name">Lunch at Cafeteria</div><div class="txn-cat">Food · Feb 20, 13:05</div></div><div class="txn-amount" style="color:var(--expense)">-$12.50</div></div>
+          <div class="txn-row"><div class="txn-icon" style="background:rgba(99,102,241,0.1)">☕</div><div class="txn-info"><div class="txn-name">Morning Coffee</div><div class="txn-cat">Coffee · Feb 20, 08:12</div></div><div class="txn-amount" style="color:var(--expense)">-$5.00</div></div>
+          <div class="txn-row"><div class="txn-icon" style="background:rgba(244,63,94,0.1)">🛒</div><div class="txn-info"><div class="txn-name">Weekend Groceries</div><div class="txn-cat">Groceries · Feb 18, 18:45</div></div><div class="txn-amount" style="color:var(--expense)">-$87.30</div></div>
+          <div class="txn-row"><div class="txn-icon" style="background:rgba(236,72,153,0.1)">👟</div><div class="txn-info"><div class="txn-name">Nike Shoes</div><div class="txn-cat">Shopping · Feb 16, 14:30</div></div><div class="txn-amount" style="color:var(--expense)">-$129.00</div></div>
+          <div class="txn-row"><div class="txn-icon" style="background:rgba(16,185,129,0.1)">💼</div><div class="txn-info"><div class="txn-name">Monthly Salary</div><div class="txn-cat">Income · Feb 1, 09:00</div></div><div class="txn-amount" style="color:var(--income)">+$5,200.00</div></div>
+          <div class="txn-row" style="border-bottom:none"><div class="txn-icon" style="background:rgba(59,130,246,0.1)">🚌</div><div class="txn-info"><div class="txn-name">Bus Pass</div><div class="txn-cat">Transport · Feb 1, 08:00</div></div><div class="txn-amount" style="color:var(--expense)">-$45.00</div></div>
+        </div>
+        <div style="height:80px"></div>
+      </div>
+    </div>
+
+    <!-- ════════ ANALYTICS SCREEN ════════ -->
+    <div class="screen" id="screen-analytics">
+      <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+      <div class="scroll-body">
+        <div class="page-title-bar">
+          <div class="page-title">Analytics</div>
+          <div style="background:rgba(99,102,241,0.1);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--primary)">📅 Feb 2026</div>
+        </div>
+
+        <!-- Trend chart -->
+        <div class="card">
+          <div class="card-title">Income vs Expense</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:6px">Last 30 days</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--income)"></div>Income</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--expense)"></div>Expense</div>
+          </div>
+          <div class="chart-area">
+            <!-- Simplified bar chart representing line chart data -->
+            <div class="bar-group"><div class="bar" style="height:40px;background:rgba(16,185,129,0.6)"></div><div class="bar" style="height:20px;background:rgba(244,63,94,0.6)"></div></div>
+            <div class="bar-group"><div class="bar" style="height:35px;background:rgba(16,185,129,0.6)"></div><div class="bar" style="height:35px;background:rgba(244,63,94,0.6)"></div></div>
+            <div class="bar-group"><div class="bar" style="height:50px;background:rgba(16,185,129,0.6)"></div><div class="bar" style="height:28px;background:rgba(244,63,94,0.6)"></div></div>
+            <div class="bar-group"><div class="bar" style="height:38px;background:rgba(16,185,129,0.6)"></div><div class="bar" style="height:45px;background:rgba(244,63,94,0.6)"></div></div>
+            <div class="bar-group"><div class="bar" style="height:100px;background:rgba(16,185,129,0.8)"></div><div class="bar" style="height:30px;background:rgba(244,63,94,0.6)"></div></div>
+            <div class="bar-group"><div class="bar" style="height:30px;background:rgba(16,185,129,0.6)"></div><div class="bar" style="height:55px;background:rgba(244,63,94,0.6)"></div></div>
+            <div class="bar-group"><div class="bar" style="height:42px;background:rgba(16,185,129,0.6)"></div><div class="bar" style="height:38px;background:rgba(244,63,94,0.6)"></div></div>
+            <div class="bar-group"><div class="bar" style="height:36px;background:rgba(16,185,129,0.6)"></div><div class="bar" style="height:60px;background:rgba(244,63,94,0.6)"></div></div>
+          </div>
+        </div>
+
+        <!-- Spending breakdown -->
+        <div class="card">
+          <div class="card-title">Spending Breakdown</div>
+          <div class="pie-row">
+            <svg class="pie-svg" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#F43F5E" stroke-width="4" stroke-dasharray="38 62" stroke-dashoffset="25"></circle>
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#6366F1" stroke-width="4" stroke-dasharray="22 78" stroke-dashoffset="-13"></circle>
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#10B981" stroke-width="4" stroke-dasharray="18 82" stroke-dashoffset="-35"></circle>
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#F59E0B" stroke-width="4" stroke-dasharray="12 88" stroke-dashoffset="-53"></circle>
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#3B82F6" stroke-width="4" stroke-dasharray="10 90" stroke-dashoffset="-65"></circle>
+            </svg>
+            <div class="pie-labels">
+              <div class="pie-label-row"><div class="pie-dot" style="background:#F43F5E"></div><div class="pie-lname">Food</div><div class="pie-pct">38%</div></div>
+              <div class="pie-label-row"><div class="pie-dot" style="background:#6366F1"></div><div class="pie-lname">Shopping</div><div class="pie-pct">22%</div></div>
+              <div class="pie-label-row"><div class="pie-dot" style="background:#10B981"></div><div class="pie-lname">Groceries</div><div class="pie-pct">18%</div></div>
+              <div class="pie-label-row"><div class="pie-dot" style="background:#F59E0B"></div><div class="pie-lname">Transport</div><div class="pie-pct">12%</div></div>
+              <div class="pie-label-row"><div class="pie-dot" style="background:#3B82F6"></div><div class="pie-lname">Bills</div><div class="pie-pct">10%</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Heatmap -->
+        <div class="card">
+          <div class="card-title">Daily Spending Heatmap</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:-8px;margin-bottom:8px">Darker = more spending</div>
+          <div class="heatmap-grid">
+            <div class="heat-day-label">M</div><div class="heat-day-label">T</div><div class="heat-day-label">W</div><div class="heat-day-label">T</div><div class="heat-day-label">F</div><div class="heat-day-label">S</div><div class="heat-day-label">S</div>
+            <!-- Row 1 -->
+            <div class="heat-cell" style="background:#F8F7FF;color:var(--text3)"></div>
+            <div class="heat-cell" style="background:#F8F7FF;color:var(--text3)"></div>
+            <div class="heat-cell" style="background:#F8F7FF;color:var(--text3)"></div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.15);color:var(--text3)">1</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.3);color:var(--text3)">2</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.6);color:white">3</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.2);color:var(--text3)">4</div>
+            <!-- Row 2 -->
+            <div class="heat-cell" style="background:rgba(244,63,94,0.15);color:var(--text3)">5</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.7);color:white">6</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.15);color:var(--text3)">7</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.4);color:var(--text3)">8</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.25);color:var(--text3)">9</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.9);color:white">10</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.3);color:var(--text3)">11</div>
+            <!-- Row 3 -->
+            <div class="heat-cell" style="background:rgba(244,63,94,0.15);color:var(--text3)">12</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.35);color:var(--text3)">13</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.5);color:white">14</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.15);color:var(--text3)">15</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.6);color:white">16</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.8);color:white">17</div>
+            <div class="heat-cell" style="background:rgba(244,63,94,0.4);color:var(--text3)">18</div>
+            <!-- Row 4 -->
+            <div class="heat-cell" style="background:rgba(244,63,94,0.2);color:var(--text3)">19</div>
+            <div class="heat-cell" style="border:2px solid var(--primary);background:rgba(244,63,94,0.35);color:var(--text3)">20</div>
+            <div class="heat-cell" style="background:#F8F7FF;color:var(--text3)">21</div>
+            <div class="heat-cell" style="background:#F8F7FF;color:var(--text3)">22</div>
+            <div class="heat-cell" style="background:#F8F7FF;color:var(--text3)">23</div>
+            <div class="heat-cell" style="background:#F8F7FF;color:var(--text3)">24</div>
+            <div class="heat-cell" style="background:#F8F7FF;color:var(--text3)">25</div>
+          </div>
+        </div>
+        <div style="height:80px"></div>
+      </div>
+    </div>
+
+    <!-- ════════ BUDGET SCREEN ════════ -->
+    <div class="screen" id="screen-budget">
+      <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+      <div class="scroll-body">
+        <div class="page-title-bar">
+          <div class="page-title">Budgets</div>
+          <button class="add-btn" onclick="alert('In the real app, this opens the Add Budget sheet!')">+</button>
+        </div>
+
+        <div class="budget-card">
+          <div class="budget-name">🍱 Food & Dining</div>
+          <div class="budget-period">Monthly</div>
+          <div class="budget-amounts">
+            <div class="budget-spent" style="color:var(--warning)">$420</div>
+            <div class="budget-total">of $500</div>
+          </div>
+          <div class="budget-bar-bg"><div class="budget-bar-fill" style="width:84%;background:var(--warning)"></div></div>
+          <div class="budget-footer">84% used · $80 remaining · ⚠️ Near limit</div>
+        </div>
+
+        <div class="budget-card">
+          <div class="budget-name">🛍️ Shopping</div>
+          <div class="budget-period">Monthly</div>
+          <div class="budget-amounts">
+            <div class="budget-spent" style="color:var(--expense)">$612</div>
+            <div class="budget-total">of $400</div>
+          </div>
+          <div class="budget-bar-bg"><div class="budget-bar-fill" style="width:100%;background:var(--expense)"></div></div>
+          <div class="budget-footer">🔴 Over budget by $212</div>
+        </div>
+
+        <div class="budget-card">
+          <div class="budget-name">🚌 Transport</div>
+          <div class="budget-period">Monthly</div>
+          <div class="budget-amounts">
+            <div class="budget-spent" style="color:var(--income)">$78</div>
+            <div class="budget-total">of $200</div>
+          </div>
+          <div class="budget-bar-bg"><div class="budget-bar-fill" style="width:39%;background:var(--income)"></div></div>
+          <div class="budget-footer">39% used · $122 remaining ✅</div>
+        </div>
+
+        <div class="budget-card">
+          <div class="budget-name">💡 Bills & Utilities</div>
+          <div class="budget-period">Monthly</div>
+          <div class="budget-amounts">
+            <div class="budget-spent" style="color:var(--income)">$145</div>
+            <div class="budget-total">of $300</div>
+          </div>
+          <div class="budget-bar-bg"><div class="budget-bar-fill" style="width:48%;background:var(--income)"></div></div>
+          <div class="budget-footer">48% used · $155 remaining ✅</div>
+        </div>
+
+        <div style="height:80px"></div>
+      </div>
+    </div>
+
+    <!-- ════════ SETTINGS SCREEN ════════ -->
+    <div class="screen" id="screen-settings">
+      <div class="status-bar"><span>9:41</span><span>●●● 📶 🔋</span></div>
+      <div class="scroll-body">
+        <div class="page-title-bar"><div class="page-title">Settings</div></div>
+
+        <div class="settings-profile">
+          <div class="settings-avatar">👤</div>
+          <div>
+            <div class="settings-name">FlowMoney</div>
+            <div class="settings-sub">Currency: USD</div>
+          </div>
+        </div>
+
+        <div class="settings-section-label">Appearance</div>
+        <div class="settings-group">
+          <div class="settings-row"><div class="settings-icon" style="background:rgba(99,102,241,0.1)">🌙</div><div class="settings-label"><div class="settings-row-title">Theme</div><div class="settings-row-sub">System</div></div><div class="settings-chevron">›</div></div>
+          <div class="settings-row"><div class="settings-icon" style="background:rgba(16,185,129,0.1)">💱</div><div class="settings-label"><div class="settings-row-title">Currency</div><div class="settings-row-sub">USD — US Dollar</div></div><div class="settings-chevron">›</div></div>
+        </div>
+
+        <div class="settings-section-label">Notifications</div>
+        <div class="settings-group">
+          <div class="settings-row"><div class="settings-icon" style="background:rgba(245,158,11,0.1)">🔔</div><div class="settings-label"><div class="settings-row-title">Budget Alerts</div><div class="settings-row-sub">Enabled</div></div><div style="width:40px;height:22px;background:var(--primary);border-radius:11px;position:relative"><div style="position:absolute;right:2px;top:2px;width:18px;height:18px;background:white;border-radius:9px"></div></div></div>
+        </div>
+
+        <div class="settings-section-label">Data & Export</div>
+        <div class="settings-group">
+          <div class="settings-row"><div class="settings-icon" style="background:rgba(59,130,246,0.1)">⬇️</div><div class="settings-label"><div class="settings-row-title">Export as CSV</div><div class="settings-row-sub">Share your transactions</div></div><div class="settings-chevron">›</div></div>
+          <div class="settings-row"><div class="settings-icon" style="background:rgba(5,150,105,0.1)">📊</div><div class="settings-label"><div class="settings-row-title">Export as Excel</div><div class="settings-row-sub">Export as .xlsx file</div></div><div class="settings-chevron">›</div></div>
+        </div>
+
+        <div style="text-align:center;font-size:11px;color:var(--text3);padding:20px 0 80px;line-height:1.8">
+          FlowMoney v1.0.0<br>Built with Flutter ❤️
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ ADD TRANSACTION SHEET ════════ -->
+    <div class="sheet-overlay" id="add-sheet" onclick="closeSheet(event)">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="sheet-title" style="margin-bottom:0">Add Transaction</div>
+          <span onclick="closeSheet(null)" style="cursor:pointer;font-size:20px;color:var(--text3)">✕</span>
+        </div>
+
+        <div class="type-toggle">
+          <button class="type-btn active-expense" id="btn-expense" onclick="setType('expense')">↑ Expense</button>
+          <button class="type-btn" id="btn-income" onclick="setType('income')">↓ Income</button>
+        </div>
+
+        <!-- Suggestion chips -->
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">⚡ Quick fill</div>
+          <div class="suggestions-row">
+            <div class="chip" onclick="fillSuggestion('🍱 Lunch', 12)"><span class="chip-bolt">⚡</span><span class="chip-name">🍱 Lunch</span><span class="chip-amt">$12</span></div>
+            <div class="chip" onclick="fillSuggestion('☕ Coffee', 5)"><span class="chip-bolt">⚡</span><span class="chip-name">☕ Coffee</span><span class="chip-amt">$5</span></div>
+            <div class="chip" onclick="fillSuggestion('🚌 Transport', 3)"><span class="chip-bolt">⚡</span><span class="chip-name">🚌 Transport</span><span class="chip-amt">$3</span></div>
+          </div>
+        </div>
+
+        <!-- Amount -->
+        <div class="amount-box" id="amount-box">
+          <label>Amount</label>
+          <div style="display:flex;align-items:center;justify-content:center;gap:4px">
+            <span id="currency-sym" style="font-size:28px;font-weight:700;color:var(--expense)">$</span>
+            <input class="amount-input" id="amount-input" type="number" placeholder="0.00" step="0.01" min="0">
+          </div>
+        </div>
+
+        <!-- Categories -->
+        <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">Category</div>
+        <div class="cats-wrap" id="cats-wrap">
+          <div class="cat-chip" onclick="selectCat(this)">🍱 Food</div>
+          <div class="cat-chip selected" onclick="selectCat(this)">☕ Coffee</div>
+          <div class="cat-chip" onclick="selectCat(this)">🛒 Groceries</div>
+          <div class="cat-chip" onclick="selectCat(this)">🚌 Transport</div>
+          <div class="cat-chip" onclick="selectCat(this)">🛍️ Shopping</div>
+          <div class="cat-chip" onclick="selectCat(this)">🎬 Entertainment</div>
+          <div class="cat-chip" onclick="selectCat(this)">💪 Gym</div>
+          <div class="cat-chip" onclick="selectCat(this)">💡 Bills</div>
+        </div>
+
+        <!-- Note -->
+        <input class="note-input" id="note-input" placeholder="📝 Note (optional)">
+
+        <button class="save-btn" id="save-btn" onclick="saveTransaction()">Save Transaction</button>
+      </div>
+    </div>
+
+    <!-- FAB -->
+    <div class="fab" onclick="openSheet()">+</div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+      <div class="nav-item active" id="nav-0" onclick="switchTab(0)">
+        <div class="nav-pill"><div class="nav-icon">🏠</div></div>
+        <div class="nav-label" style="color:var(--primary)">Home</div>
+      </div>
+      <div class="nav-item" id="nav-1" onclick="switchTab(1)">
+        <div class="nav-icon">🧾</div>
+        <div class="nav-label">History</div>
+      </div>
+      <div class="nav-spacer"></div>
+      <div class="nav-item" id="nav-2" onclick="switchTab(2)">
+        <div class="nav-icon">📊</div>
+        <div class="nav-label">Analytics</div>
+      </div>
+      <div class="nav-item" id="nav-3" onclick="switchTab(3)">
+        <div class="nav-icon">💰</div>
+        <div class="nav-label">Budgets</div>
+      </div>
+    </div>
+  </div><!-- /phone -->
+</div><!-- /phone-wrapper -->
+
+<!-- Navigation buttons below phone -->
+<div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;justify-content:center">
+  <button onclick="showScreen('onboarding')" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600">👋 Onboarding</button>
+  <button onclick="switchTab(0)" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600">🏠 Dashboard</button>
+  <button onclick="switchTab(1)" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600">🧾 Transactions</button>
+  <button onclick="switchTab(2)" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600">📊 Analytics</button>
+  <button onclick="switchTab(3)" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600">💰 Budgets</button>
+  <button onclick="openSheet()" style="background:linear-gradient(135deg,#4F46E5,#7C3AED);color:white;border:none;border-radius:20px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600">➕ Add Transaction</button>
+  <button onclick="switchTab(4)" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600">⚙️ Settings</button>
+</div>
+
+<p style="color:rgba(255,255,255,0.35);font-size:12px;margin-top:16px;text-align:center">
+  This is an interactive preview of the FlowMoney Flutter app.<br>
+  The real app is at <code style="color:rgba(255,255,255,0.5)">FlowMoney_Flutter/</code> — build it with <code style="color:rgba(255,255,255,0.5)">flutter build apk</code>
+</p>
+
+<script>
+const screens = ['dashboard','transactions','analytics','budget','settings','onboarding'];
+
+function showScreen(name) {
+  screens.forEach(s => {
+    const el = document.getElementById('screen-' + s);
+    if (el) el.classList.toggle('active', s === name);
+  });
+}
+
+function switchTab(index) {
+  const tabScreens = ['dashboard','transactions','analytics','budget','settings'];
+  showScreen(tabScreens[index]);
+
+  // Update nav
+  for (let i = 0; i < 4; i++) {
+    const nav = document.getElementById('nav-' + i);
+    if (!nav) continue;
+    const label = nav.querySelector('.nav-label');
+    const pill = nav.querySelector('.nav-pill');
+    nav.classList.toggle('active', i === index);
+    label.style.color = i === index ? 'var(--primary)' : 'var(--text3)';
+    if (pill) pill.style.background = i === index ? 'rgba(99,102,241,0.12)' : '';
+  }
+}
+
+function openSheet() {
+  document.getElementById('add-sheet').classList.add('open');
+}
+function closeSheet(e) {
+  if (!e || e.target === document.getElementById('add-sheet')) {
+    document.getElementById('add-sheet').classList.remove('open');
+  }
+}
+
+function setType(type) {
+  const expenseBtn = document.getElementById('btn-expense');
+  const incomeBtn = document.getElementById('btn-income');
+  const amountBox = document.getElementById('amount-box');
+  const amountInput = document.getElementById('amount-input');
+  const currencySym = document.getElementById('currency-sym');
+  const saveBtn = document.getElementById('save-btn');
+
+  const color = type === 'expense' ? 'var(--expense)' : 'var(--income)';
+
+  expenseBtn.className = 'type-btn' + (type === 'expense' ? ' active-expense' : '');
+  incomeBtn.className = 'type-btn' + (type === 'income' ? ' active-income' : '');
+  amountBox.style.background = type === 'expense' ? 'rgba(244,63,94,0.06)' : 'rgba(16,185,129,0.06)';
+  amountBox.style.borderColor = type === 'expense' ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)';
+  amountInput.style.color = color;
+  currencySym.style.color = color;
+  saveBtn.style.background = type === 'expense' ? 'var(--expense)' : 'var(--income)';
+  saveBtn.textContent = type === 'expense' ? 'Save Expense' : 'Save Income';
+}
+
+function selectCat(el) {
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function fillSuggestion(name, amount) {
+  document.getElementById('amount-input').value = amount;
+  document.getElementById('note-input').value = name;
+}
+
+function saveTransaction() {
+  const amount = document.getElementById('amount-input').value;
+  const note = document.getElementById('note-input').value;
+  if (!amount || amount <= 0) {
+    alert('Please enter an amount!');
+    return;
+  }
+  // Simulate save with animation
+  const btn = document.getElementById('save-btn');
+  btn.textContent = '✓ Saved!';
+  btn.style.background = 'var(--income)';
+  setTimeout(() => {
+    closeSheet(null);
+    btn.textContent = 'Save Transaction';
+    btn.style.background = 'var(--expense)';
+    document.getElementById('amount-input').value = '';
+    document.getElementById('note-input').value = '';
+  }, 800);
+}
+</script>
+</body>
+</html>
