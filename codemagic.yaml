@@ -1,0 +1,40 @@
+workflows:
+  ios-release:
+    name: FlowMoney iOS (Unsigned IPA)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+
+      - name: Install CocoaPods
+        script: |
+          cd ios && pod install
+
+      - name: Build iOS (no code signing)
+        script: |
+          flutter build ios --release --no-codesign
+
+      - name: Package unsigned IPA
+        script: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/Runner.app
+          zip -r FlowMoney-unsigned.ipa Payload
+          mv FlowMoney-unsigned.ipa $CM_BUILD_DIR/
+
+    artifacts:
+      - $CM_BUILD_DIR/FlowMoney-unsigned.ipa
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
