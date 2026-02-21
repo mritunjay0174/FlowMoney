@@ -38,6 +38,7 @@ class AnalyticsViewModel extends ChangeNotifier {
   Map<int, double> _heatmapData = {};
   List<Category> _categories = [];
   bool _loading = false;
+  String? _error;
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
 
@@ -45,33 +46,44 @@ class AnalyticsViewModel extends ChangeNotifier {
   List<CategorySpend> get categoryData => _categoryData;
   Map<int, double> get heatmapData => _heatmapData;
   bool get loading => _loading;
+  String? get error => _error;
   int get selectedMonth => _selectedMonth;
   int get selectedYear => _selectedYear;
 
   Future<void> load() async {
     _loading = true;
+    _error = null;
     notifyListeners();
 
-    _categories = await _db.getAllCategories();
-    await _loadTrend();
-    await _loadCategories();
-    await _loadHeatmap();
-
-    _loading = false;
-    notifyListeners();
+    try {
+      _categories = await _db.getAllCategories();
+      await _loadTrend();
+      await _loadCategories();
+      await _loadHeatmap();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> selectMonth(int year, int month) async {
     _selectedYear = year;
     _selectedMonth = month;
     _loading = true;
+    _error = null;
     notifyListeners();
 
-    await _loadCategories();
-    await _loadHeatmap();
-
-    _loading = false;
-    notifyListeners();
+    try {
+      await _loadCategories();
+      await _loadHeatmap();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _loadTrend() async {

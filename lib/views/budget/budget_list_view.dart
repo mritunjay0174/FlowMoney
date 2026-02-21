@@ -57,6 +57,35 @@ class BudgetListView extends StatelessWidget {
                   child: Center(
                       child: CircularProgressIndicator(
                           color: AppColors.primary)))
+            else if (vm.error != null)
+              SliverFillRemaining(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.account_balance_wallet_outlined,
+                            size: 48, color: AppColors.textTertiary),
+                        const SizedBox(height: AppSpacing.md),
+                        const Text(
+                          'Could not load budgets',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        const Text(
+                          'Pull down to retry',
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
             else if (vm.budgets.isEmpty)
               SliverFillRemaining(
                 child: Center(

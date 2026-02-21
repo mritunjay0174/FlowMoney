@@ -35,10 +35,12 @@ class OnboardingViewModel extends ChangeNotifier {
   int _page = 0;
   String _selectedCurrency = 'USD';
   bool _completing = false;
+  String _userName = '';
 
   int get page => _page;
   String get selectedCurrency => _selectedCurrency;
   bool get completing => _completing;
+  String get userName => _userName;
 
   final List<OnboardingExpense> presets = [
     OnboardingExpense(name: 'Morning Coffee', emoji: '☕', defaultHour: 8),
@@ -56,6 +58,11 @@ class OnboardingViewModel extends ChangeNotifier {
 
   List<OnboardingExpense> get selectedExpenses =>
       [...presets, ..._custom].where((e) => e.selected).toList();
+
+  void setUserName(String name) {
+    _userName = name.trim();
+    notifyListeners();
+  }
 
   void nextPage() {
     _page++;
@@ -121,7 +128,12 @@ class OnboardingViewModel extends ChangeNotifier {
       await _db.insertPattern(pattern);
     }
 
-    await _appState.completeOnboarding(currency: _selectedCurrency);
+    // Save user name and complete onboarding
+    await _appState.completeOnboarding(
+      currency: _selectedCurrency,
+      userName: _userName.isNotEmpty ? _userName : null,
+    );
+
     _completing = false;
     notifyListeners();
   }

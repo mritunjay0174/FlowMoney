@@ -16,6 +16,7 @@ class DashboardViewModel extends ChangeNotifier {
   double _monthIncome = 0;
   double _monthExpense = 0;
   bool _loading = false;
+  String? _error;
 
   List<Transaction> get recent => _recent;
   List<Budget> get budgets => _budgets;
@@ -24,25 +25,31 @@ class DashboardViewModel extends ChangeNotifier {
   double get monthExpense => _monthExpense;
   double get netBalance => _monthIncome - _monthExpense;
   bool get loading => _loading;
+  String? get error => _error;
 
   Future<void> load() async {
     _loading = true;
+    _error = null;
     notifyListeners();
 
-    final now = DateTime.now();
-    final start = DateTime(now.year, now.month, 1);
-    final end = DateTime(now.year, now.month + 1, 1);
+    try {
+      final now = DateTime.now();
+      final start = DateTime(now.year, now.month, 1);
+      final end = DateTime(now.year, now.month + 1, 1);
 
-    _recent = await _db.getAllTransactions(limit: 20);
-    _categories = await _db.getAllCategories();
-    _budgets = await _db.getAllBudgets();
-    _monthIncome =
-        await _db.getTotalByType(TransactionType.income, from: start, to: end);
-    _monthExpense = await _db.getTotalByType(TransactionType.expense,
-        from: start, to: end);
-
-    _loading = false;
-    notifyListeners();
+      _recent = await _db.getAllTransactions(limit: 20);
+      _categories = await _db.getAllCategories();
+      _budgets = await _db.getAllBudgets();
+      _monthIncome =
+          await _db.getTotalByType(TransactionType.income, from: start, to: end);
+      _monthExpense = await _db.getTotalByType(TransactionType.expense,
+          from: start, to: end);
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   Category? categoryFor(String? id) {

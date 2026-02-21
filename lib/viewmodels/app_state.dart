@@ -8,16 +8,19 @@ class AppState extends ChangeNotifier {
   static const _keyCurrency = 'currency_code';
   static const _keyTheme = 'theme_mode';
   static const _keyNotifications = 'notifications_enabled';
+  static const _keyUserName = 'user_name';
 
   bool _onboardingComplete = false;
   String _currency = 'USD';
   ThemeMode _themeMode = ThemeMode.system;
   bool _notificationsEnabled = true;
+  String _userName = '';
 
   bool get onboardingComplete => _onboardingComplete;
   String get currency => _currency;
   ThemeMode get themeMode => _themeMode;
   bool get notificationsEnabled => _notificationsEnabled;
+  String get userName => _userName;
 
   String get currencySymbol {
     try {
@@ -32,6 +35,7 @@ class AppState extends ChangeNotifier {
     _onboardingComplete = prefs.getBool(_keyOnboarding) ?? false;
     _currency = prefs.getString(_keyCurrency) ?? _detectCurrency();
     _notificationsEnabled = prefs.getBool(_keyNotifications) ?? true;
+    _userName = prefs.getString(_keyUserName) ?? '';
     final themeIndex = prefs.getInt(_keyTheme) ?? 0;
     _themeMode = ThemeMode.values[themeIndex];
     notifyListeners();
@@ -47,12 +51,28 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> completeOnboarding({required String currency}) async {
+  Future<void> setUserName(String name) async {
+    _userName = name.trim();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserName, _userName);
+    notifyListeners();
+  }
+
+  Future<void> completeOnboarding({
+    required String currency,
+    String? userName,
+  }) async {
     _onboardingComplete = true;
     _currency = currency;
+    if (userName != null && userName.trim().isNotEmpty) {
+      _userName = userName.trim();
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyOnboarding, true);
     await prefs.setString(_keyCurrency, currency);
+    if (_userName.isNotEmpty) {
+      await prefs.setString(_keyUserName, _userName);
+    }
     notifyListeners();
   }
 
@@ -79,6 +99,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> resetApp() async {
     _onboardingComplete = false;
+    _userName = '';
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     notifyListeners();

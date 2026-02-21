@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../design/app_colors.dart';
 import '../design/card_decoration.dart';
+import '../services/database_service.dart';
+import '../services/data_seeder.dart';
 import '../viewmodels/dashboard_viewmodel.dart';
 import '../viewmodels/transaction_viewmodel.dart';
 import '../viewmodels/analytics_viewmodel.dart';
@@ -27,10 +29,19 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    // Use addPostFrameCallback to safely access context after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
+
+    // Safety net: seed default categories if they haven't been seeded yet
+    // (handles edge case where onboarding was somehow skipped)
+    final db = context.read<DatabaseService>();
+    await DataSeeder.seedIfNeeded(db);
+
+    if (!mounted) return;
     final appState = context.read<AppState>();
     final currency = appState.currency;
 
@@ -53,8 +64,11 @@ class _MainScaffoldState extends State<MainScaffold> {
       backgroundColor: Colors.transparent,
       builder: (_) => const AddTransactionSheet(),
     ).then((_) {
-      // Refresh dashboard after adding transaction
+      if (!mounted) return;
+      // Refresh all viewmodels after adding a transaction
+      final currency = context.read<AppState>().currency;
       context.read<DashboardViewModel>().load();
+      context.read<TransactionViewModel>().loadAll(currency);
       context.read<AnalyticsViewModel>().load();
       context.read<BudgetViewModel>().load();
     });

@@ -36,20 +36,27 @@ class BudgetViewModel extends ChangeNotifier {
   List<BudgetWithSpend> _budgets = [];
   List<Category> _categories = [];
   bool _loading = false;
+  String? _error;
 
   List<BudgetWithSpend> get budgets => _budgets;
   List<Category> get categories => _categories;
   bool get loading => _loading;
+  String? get error => _error;
 
   Future<void> load() async {
     _loading = true;
+    _error = null;
     notifyListeners();
 
-    _categories = await _db.getAllCategories();
-    await _refreshBudgets();
-
-    _loading = false;
-    notifyListeners();
+    try {
+      _categories = await _db.getAllCategories();
+      await _refreshBudgets();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _refreshBudgets() async {
@@ -81,8 +88,8 @@ class BudgetViewModel extends ChangeNotifier {
 
       return BudgetWithSpend(budget: b, spent: spent, category: cat);
     }));
-
-    notifyListeners();
+    // Note: notifyListeners() is intentionally NOT called here.
+    // It will be called by load() in the finally block after _loading = false.
   }
 
   (DateTime, DateTime) _periodRange(Budget b, DateTime now) {
@@ -118,7 +125,7 @@ class BudgetViewModel extends ChangeNotifier {
       categoryId: categoryId,
     );
     await _db.insertBudget(budget);
-    await _refreshBudgets();
+    await load();
   }
 
   Future<void> deleteBudget(String id) async {

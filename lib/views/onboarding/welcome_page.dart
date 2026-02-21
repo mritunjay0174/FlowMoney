@@ -16,6 +16,7 @@ class _WelcomePageState extends State<WelcomePage>
   late AnimationController _ctrl;
   late Animation<double> _fade;
   late Animation<Offset> _slide;
+  final TextEditingController _nameController = TextEditingController();
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _WelcomePageState extends State<WelcomePage>
   @override
   void dispose() {
     _ctrl.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -98,6 +100,57 @@ class _WelcomePageState extends State<WelcomePage>
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
+                  // Name input field
+                  TextField(
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: "What's your first name? (optional)",
+                      hintStyle: TextStyle(
+                        color: Colors.white.withOpacity(0.55),
+                        fontSize: 15,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.person_outline_rounded,
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.15),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                          color: Colors.white,
+                          width: 1.5,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                    ),
+                    onChanged: (v) =>
+                        context.read<OnboardingViewModel>().setUserName(v),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
                   // Feature pills
                   Wrap(
                     spacing: AppSpacing.sm,

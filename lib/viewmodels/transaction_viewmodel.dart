@@ -30,12 +30,14 @@ class TransactionViewModel extends ChangeNotifier {
   List<SuggestedPattern> _suggestions = [];
 
   bool _loading = false;
+  String? _error;
 
   List<Transaction> get transactions => _transactions;
   List<Category> get categories => _categories;
   List<RecurringPattern> get patterns => _patterns;
   List<SuggestedPattern> get suggestions => _suggestions;
   bool get loading => _loading;
+  String? get error => _error;
 
   List<Category> get filteredCategories =>
       _categories.where((c) => c.type == type).toList();
@@ -43,14 +45,20 @@ class TransactionViewModel extends ChangeNotifier {
   Future<void> loadAll(String currency) async {
     this.currency = currency;
     _loading = true;
+    _error = null;
     notifyListeners();
 
-    _transactions = await _db.getAllTransactions();
-    _categories = await _db.getAllCategories();
-    _patterns = await _db.getAllPatterns();
-    _refreshSuggestions();
-    _loading = false;
-    notifyListeners();
+    try {
+      _transactions = await _db.getAllTransactions();
+      _categories = await _db.getAllCategories();
+      _patterns = await _db.getAllPatterns();
+      _refreshSuggestions();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   void _refreshSuggestions() {

@@ -47,6 +47,74 @@ class AnalyticsView extends StatelessWidget {
                     child: CircularProgressIndicator(
                         color: AppColors.primary)),
               )
+            else if (vm.error != null)
+              SliverFillRemaining(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.bar_chart_rounded,
+                            size: 48, color: AppColors.textTertiary),
+                        const SizedBox(height: AppSpacing.md),
+                        const Text(
+                          'Could not load analytics',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        const Text(
+                          'Pull down to retry',
+                          style: TextStyle(
+                              color: AppColors.textSecondary, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else if (vm.trendData.isEmpty && vm.categoryData.isEmpty)
+              SliverFillRemaining(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: const Icon(Icons.bar_chart_rounded,
+                              size: 56, color: AppColors.primary),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        const Text(
+                          'No data yet',
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'Add some transactions using the + button\nand your analytics will appear here.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 14,
+                              height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
             else
               SliverPadding(
                 padding: const EdgeInsets.symmetric(
